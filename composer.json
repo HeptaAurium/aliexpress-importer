@@ -1,0 +1,28 @@
+{
+    "name": "heptaaurium/aliexpress-importer",
+    "description": "An aliexpress importer plugin for Botble laravel platform",
+    "type": "package",
+    "version": "1.0.0",
+    "require": {
+        "laravel/sanctum": "^3.3"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Heptaaurium\\AliexpressImporter\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Heptaaurium\\AliexpressImporter\\AliexpressImporterServiceProvider"
+            ]
+        }
+    },
+    "authors": [
+        {
+            "name": "Ngugi Kiarie"
+        }
+    ],
+    "minimum-stability": "dev"
+}
