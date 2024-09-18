@@ -41,12 +41,9 @@ class AliexpressImporterServiceProvider extends ServiceProvider
         ], 'config');
 
         $this->publishes([
-            __DIR__ . '/Migrations/2024_09_16_000000_create_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
+            __DIR__ . '/Migrations/2024_09_16_000000_create_jwt_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
         ], 'migrations');
 
-        $this->publishes([
-            __DIR__ . '/../config/sanctum.php' => config_path('sanctum.php'),
-        ], 'sanctum-config');
         $this->publishes([
             __DIR__ . '/Http/Middleware/TokenFromUrl.php' => app_path('Http/Middleware/TokenFromUrl.php'),
         ], 'middleware');
