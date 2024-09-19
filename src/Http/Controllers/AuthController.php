@@ -148,11 +148,23 @@ class AuthController extends Controller
 
         return view('aliexpress-importer::token-result', $data);
     }
-
     public function verifyToken(Request $request)
     {
-        return [
-            'status' => true
-        ];
+        $token = $request->get('api_token');
+        $check = AliExpressImporterToken::where('token', $token)
+            ->first();
+
+        if (!$check || $check->expires_at < now()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Token is invalid or expired'
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Token is valid',
+            'token' => $token
+        ]);
     }
 }
