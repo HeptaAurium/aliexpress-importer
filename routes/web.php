@@ -11,8 +11,3 @@ Route::group(['namespace' => 'HeptaAurium\AliExpressImporter\Controllers', 'midd
         Route::delete('/delete-token/{id}', [AuthController::class, 'deleteToken'])->name('aliexpressimporter.token.delete');
     });
 });
-
-Route::middleware(['token.from.url'])->group(function () {
-    Route::get('/', [AuthController::class, 'verifyToken']);
-    Route::post('/aliexpress-importer/store-products', [ProductsController::class, 'store']);
-});

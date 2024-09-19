@@ -35,6 +35,7 @@ class AliexpressImporterServiceProvider extends ServiceProvider
         $this->registerDashboardMenus();
 
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'aliexpress-importer');
         $this->publishes([
             __DIR__ . '/../config/auth.php' => config_path('auth.php'),
