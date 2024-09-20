@@ -6,19 +6,17 @@ use Heptaaurium\AliexpressImporter\Models\AliExpressImporterToken;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Heptaaurium\AliexpressImporter\Traits\AuthTrait;
+
 
 class AuthController extends Controller
 {
+    use AuthTrait;
     /**
      * Create a new AuthController instance.
      *
      * @return void
      */
-    public function __construct()
-    {
-        $this->middleware('auth:api', ['except' => ['login']]);
-    }
-
     /**
      * Get a JWT via given credentials.
      *
@@ -151,20 +149,6 @@ class AuthController extends Controller
     public function verifyToken(Request $request)
     {
         $token = $request->get('api_token');
-        $check = AliExpressImporterToken::where('token', $token)
-            ->first();
-
-        if (!$check || $check->expires_at < now()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Token is invalid or expired'
-            ], 401);
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Token is valid',
-            'token' => $token
-        ]);
+        return $this->_verify_token($token);
     }
 }

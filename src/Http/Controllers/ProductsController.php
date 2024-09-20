@@ -7,10 +7,12 @@ use Heptaaurium\AliexpressImporter\Models\Product;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Heptaaurium\AliexpressImporter\Traits\AuthTrait;
+use Log;
 
 class ProductsController extends Controller
 {
-
+    use AuthTrait;
     public function index()
     {
         return json_encode([
@@ -22,7 +24,10 @@ class ProductsController extends Controller
     public function store(Request $request)
     {
         DB::beginTransaction();
-
+        $token = $request->get('api_token');
+        if ($this->_verify_token($token)->status() != 200) {
+            return $this->_verify_token($token);
+        }
         try {
 
             $product = new Product();
@@ -83,6 +88,7 @@ class ProductsController extends Controller
             return response()->json(['status' => 200]);
         } catch (\Throwable $th) {
             //throw $th;
+            Log::error($th);
             DB::rollBack();
             return response()->json(['status' => 500]);
         }
