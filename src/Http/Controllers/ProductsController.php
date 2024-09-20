@@ -28,6 +28,7 @@ class ProductsController extends Controller
         if ($this->_verify_token($token)->status() != 200) {
             return $this->_verify_token($token);
         }
+        Log::error($request);
         try {
 
             $product = new Product();
