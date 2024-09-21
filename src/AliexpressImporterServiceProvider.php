@@ -35,21 +35,45 @@ class AliexpressImporterServiceProvider extends ServiceProvider
         $this->registerDashboardMenus();
 
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'aliexpress-importer');
         $this->publishes([
             __DIR__ . '/../config/auth.php' => config_path('auth.php'),
         ], 'config');
 
         $this->publishes([
-            __DIR__ . '/Migrations/2024_09_16_000000_create_jwt_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
+            __DIR__ . '/Migrations/2024_09_16_000000_create_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
         ], 'migrations');
 
+        $this->publishes([
+            __DIR__ . '/../config/sanctum.php' => config_path('sanctum.php'),
+        ], 'sanctum-config');
         $this->publishes([
             __DIR__ . '/Http/Middleware/TokenFromUrl.php' => app_path('Http/Middleware/TokenFromUrl.php'),
         ], 'middleware');
 
+        // js
+
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__ . '/../resources/js' => public_path('vendor/ha-axi/js'),
+            ], 'public');
+
+            // Run the merge script
+            $this->mergePackageJson();
+        }
         Sanctum::ignoreMigrations();
+    }
+
+    protected function mergePackageJson()
+    {
+        $process = new \Symfony\Component\Process\Process(['php', __DIR__ . '/merge-package-json.php']);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new \Symfony\Component\Process\Exception\ProcessFailedException($process);
+        }
+
+        echo $process->getOutput();
     }
 
 
