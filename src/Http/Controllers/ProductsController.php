@@ -9,6 +9,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Heptaaurium\AliexpressImporter\Traits\AuthTrait;
 use Log;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 class ProductsController extends Controller
 {
@@ -28,14 +30,16 @@ class ProductsController extends Controller
         if ($this->_verify_token($token)->status() != 200) {
             return $this->_verify_token($token);
         }
-        Log::error($request);
+
+        return $this->runScript($request->productId);
+
         try {
 
             $product = new Product();
             $product->name = $request->input('product_name');
             $product->price = $request->input('product_price');
             $product->cost_per_item = $request->input('product_price');
-            // $product->stock = $request->input('stock');
+            $product->stock = $request->input('stock');
             $product->description = $request->input('product_description');
             $product->category_id = $request->input('category_id');
             $product->status = $request->input('status');
@@ -89,9 +93,25 @@ class ProductsController extends Controller
             return response()->json(['status' => 200]);
         } catch (\Throwable $th) {
             //throw $th;
-            Log::error($th);
             DB::rollBack();
             return response()->json(['status' => 500]);
+        }
+    }
+
+    public function runScript($productId)
+    {
+
+        $process = new Process(['node', public_path('vendor/ha-axi/js/index.mjs'), $productId]);
+
+        try {
+            $process->mustRun();
+            $output = $process->getOutput();
+            $response = json_decode($output, true);
+
+            return response()->json($response);
+        } catch (ProcessFailedException $exception) {
+            Log::error($exception->getMessage());
+            return response()->json(['error' => $exception->getMessage()], 500);
         }
     }
 }
