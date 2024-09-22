@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Heptaaurium\AliexpressImporter\Traits\AuthTrait;
-use Log;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\Log;
 
 class ProductsController extends Controller
 {
@@ -110,8 +110,9 @@ class ProductsController extends Controller
 
             return response()->json($response);
         } catch (ProcessFailedException $exception) {
-            Log::error($exception->getMessage());
-            return response()->json(['error' => $exception->getMessage()], 500);
+            Log::error('Process failed: ' . $exception->getMessage());
+            Log::error('Process error output: ' . $process->getErrorOutput());
+            return response()->json(['error' => 'An error occurred while processing your request.'], 500);
         }
     }
 }
