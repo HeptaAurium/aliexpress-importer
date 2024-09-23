@@ -31,7 +31,8 @@ class ProductsController extends Controller
             return $this->_verify_token($token);
         }
 
-        return $this->runScript($request->productId);
+        $data =  $this->runScript($request->productId);
+        return $data;
 
         try {
 

@@ -1,11 +1,8 @@
 // src/resources/js/index.mjs
 import AliexpressProductScraper from "./scraper.js"
 function f(arg) {
-    const result = {
-        message: `Hello, ${arg}!`,
-        status: 'success'
-    };
-    return result;
+    const scraper = new AliexpressProductScraper(arg);
+    return scraper.scrape(arg);
 }
 
 
