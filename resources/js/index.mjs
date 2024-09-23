@@ -1,7 +1,7 @@
 // src/resources/js/index.mjs
-import AliexpressProductScraper from "./scraper.js"
+import { getProduct } from "./scraper.js"
 function f(arg) {
-    return AliexpressProductScraper(arg);
+    return getProduct(arg);
 }
 
 
