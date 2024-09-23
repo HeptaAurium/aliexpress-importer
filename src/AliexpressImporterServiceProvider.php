@@ -54,14 +54,14 @@ class AliexpressImporterServiceProvider extends ServiceProvider
 
         // js
 
-        if ($this->app->runningInConsole()) {
-            $this->publishes([
-                __DIR__ . '/../resources/js' => public_path('vendor/ha-axi/js'),
-            ], 'public');
+        // if ($this->app->runningInConsole()) {
+        $this->publishes([
+            __DIR__ . '/../resources/js' => public_path('vendor/ha-axi/js'),
+        ], 'public');
 
-            // Run the merge script
-            $this->mergePackageJson();
-        }
+        // Run the merge script
+        // $this->mergePackageJson();
+        // }
         Sanctum::ignoreMigrations();
     }
 

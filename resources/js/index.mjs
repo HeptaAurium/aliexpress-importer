@@ -1,8 +1,7 @@
 // src/resources/js/index.mjs
 import AliexpressProductScraper from "./scraper.js"
 function f(arg) {
-    const scraper = new AliexpressProductScraper(arg);
-    return scraper.scrape(arg);
+    return AliexpressProductScraper(arg);
 }
 
 
