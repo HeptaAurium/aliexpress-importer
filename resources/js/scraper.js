@@ -19,10 +19,14 @@ const AliexpressProductScraper = async (
 
     try {
         const REVIEWS_COUNT = reviewsCount || 20;
-        const browser = await puppeteer.launch({
-            headless: false,
-            args: ["--no-sandbox"]
-        });
+        const browserFetcher = puppeteer.createBrowserFetcher();
+        let revisionInfo = await browserFetcher.download('884014');
+        browser = await puppeteer.launch(
+            {
+                executablePath: revisionInfo.executablePath,
+                args: ['--no-sandbox', "--disabled-setupid-sandbox"]
+            }
+        )
         const page = await browser.newPage();
 
         /** Scrape the aliexpress product page for details */
