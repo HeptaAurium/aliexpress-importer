@@ -105,16 +105,16 @@ class ProductsController extends Controller
 
         $process = new Process(['node', public_path('vendor/ha-axi/js/index.mjs'), $productId]);
 
-        try {
-            $process->mustRun();
-            $output = $process->getOutput();
-            $response = json_decode($output, true);
-
-            return response()->json($response);
-        } catch (ProcessFailedException $exception) {
-            Log::error('Process failed: ' . $exception->getMessage());
-            Log::error('Process error output: ' . $process->getErrorOutput());
-            return response()->json(['error' => 'An error occurred while processing your request.'], 500);
-        }
+        // try {
+        $process->mustRun();
+        $output = $process->getOutput();
+        $response = json_decode($output, true);
+        Log::info('Output:' . $response);
+        return response()->json($response);
+        // } catch (ProcessFailedException $exception) {
+        //     Log::error('Process failed: ' . $exception->getMessage());
+        //     Log::error('Process error output: ' . $process->getErrorOutput());
+        //     return response()->json(['error' => 'An error occurred while processing your request.'], 500);
+        // }
     }
 }
