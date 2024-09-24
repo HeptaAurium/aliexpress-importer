@@ -13,7 +13,22 @@ const getProduct = (productId) => async () => {
         product: {},
     };
 
-    try {
+    const puppeteer = require('puppeteer');
+
+    async function scrapeProduct(productId) {
+        const browser = await puppeteer.launch({
+            headless: false,
+            devtools: true,
+            slowMo: 250, // slow down by 250ms
+        });
+        const page = await browser.newPage();
+        const url = `https://www.aliexpress.com/item/${productId}.html`;
+        const data = {
+            logs: [],
+            product: {},
+        };
+
+        // try {
         console.log("Navigating to " + url);
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
@@ -28,11 +43,11 @@ const getProduct = (productId) => async () => {
         data.product.title = pageTitle;
 
         // Wait for the necessary DOM to be rendered
-        await page.waitForSelector('.product-price-value');
+        await page.waitForSelector('.product-price-current');
         await page.waitForSelector('.product-description');
 
         // Extract the product price
-        const price = await page.$eval('.product-price-value', el => el.innerText);
+        const price = await page.$eval('.product-price-current', el => el.innerText);
         data.product.price = price;
 
         // Extract the product description
@@ -42,13 +57,14 @@ const getProduct = (productId) => async () => {
         data.logs.push("Product price: " + price);
         data.logs.push("Product description: " + description);
 
-    } catch (error) {
-        data.logs.push("Error: " + error.message);
-    } finally {
-        await browser.close();
-    }
+        // } catch (error) {
+        //     data.logs.push("Error: " + error.message);
+        // } finally {
+        //     await browser.close();
+        // }
 
-    return data;
+        return data;
+    }
 };
 
 export { getProduct };
