@@ -109,7 +109,6 @@ class ProductsController extends Controller
         $process->mustRun();
         $output = $process->getOutput();
         $response = json_decode($output, true);
-        Log::info('Output:' . $response);
         return response()->json($response);
         // } catch (ProcessFailedException $exception) {
         //     Log::error('Process failed: ' . $exception->getMessage());
