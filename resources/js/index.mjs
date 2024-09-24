@@ -8,7 +8,7 @@ async function f(arg) {
 if (import.meta.url === `file://${process.argv[1]}`) {
     const arg = process.argv[2]; // Get the first argument passed to the script
     f(arg).then(result => {
-        console.log(JSON.stringify(result));
+        console.log(JSON.stringify(result, null, 2));
     }).catch(error => {
         console.error("Error:", error);
     });
