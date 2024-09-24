@@ -2,16 +2,6 @@
 // import { getProduct } from "./scraper.js";
 import puppeteer from "puppeteer";
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-    const arg = process.argv[2]; // Get the first argument passed to the script
-    getProduct(arg).then(result => {
-        console.log(JSON.stringify(result, null, 2));
-    }).catch(error => {
-        console.error("Error:", error);
-    });
-}
-
-
 const getProduct = (productId) => async () => {
     const browser = await puppeteer.launch({
         headless: false,
@@ -63,6 +53,15 @@ const getProduct = (productId) => async () => {
     // }
 
     return data;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    const arg = process.argv[2]; // Get the first argument passed to the script
+    getProduct(arg).then(result => {
+        console.log(JSON.stringify(result, null, 2));
+    }).catch(error => {
+        console.error("Error:", error);
+    });
 }
 
 
