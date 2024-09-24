@@ -17,7 +17,8 @@ const getProduct = (productId) => async () => {
         console.log("Navigating to " + url);
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.evaluate(() => console.log(`url is ${location.href}`));
+        await page.goto(url);
 
         // Set screen size.
         await page.setViewport({ width: 1080, height: 1024 });
@@ -26,19 +27,23 @@ const getProduct = (productId) => async () => {
         data.logs.push("Page title: " + pageTitle);
         data.product.title = pageTitle;
 
-        const productTitle = await page.evaluate(() => {
-            return document.querySelector('h1.product-title').innerText;
-        });
-        data.product.title = productTitle;
+        // Wait for the necessary DOM to be rendered
+        await page.waitForSelector('.product-price-value');
+        await page.waitForSelector('.product-description');
 
-        await page.evaluate(() => {
-            debugger;
-        });
+        // Extract the product price
+        const price = await page.$eval('.product-price-value', el => el.innerText);
+        data.product.price = price;
 
-        // Additional scraping logic can be added here
+        // Extract the product description
+        const description = await page.$eval('.product-description', el => el.innerText);
+        data.product.description = description;
+
+        data.logs.push("Product price: " + price);
+        data.logs.push("Product description: " + description);
 
     } catch (error) {
-        data.logs.push("Error: " + error.stack);
+        data.logs.push("Error: " + error.message);
     } finally {
         await browser.close();
     }

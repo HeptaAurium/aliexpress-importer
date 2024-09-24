@@ -32,6 +32,7 @@ class ProductsController extends Controller
         }
 
         $data =  $this->runScript($request->productId);
+        Log::info('Data: ' . json_encode($data));
         return $data;
 
         try {
