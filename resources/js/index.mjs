@@ -1,8 +1,6 @@
-// src/resources/js/index.mjs
-// import { getProduct } from "./scraper.js";
 import puppeteer from "puppeteer";
 
-const getProduct = (productId) => async () => {
+const getProduct = async (productId) => {
     const browser = await puppeteer.launch({
         headless: false,
         devtools: true,
@@ -17,7 +15,6 @@ const getProduct = (productId) => async () => {
     };
     await page.goto(url);
 
-    // try {
     console.log("Navigating to " + url);
     data.logs.push("Navigating to " + url);
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
@@ -46,11 +43,7 @@ const getProduct = (productId) => async () => {
     data.logs.push("Product price: " + price);
     data.logs.push("Product description: " + description);
 
-    // } catch (error) {
-    //     data.logs.push("Error: " + error.message);
-    // } finally {
-    //     await browser.close();
-    // }
+    await browser.close();
 
     return data;
 }
@@ -63,5 +56,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         console.error("Error:", error);
     });
 }
-
-
