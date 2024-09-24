@@ -114,6 +114,6 @@ class ProductsController extends Controller
         // Get the output
         $output = $process->getOutput();
         Log::info('Node.js script output: ' . $output);
-        return response()->json_encode(['status' => 200, 'data' => $output]);
+        return response()->json(['status' => 200, 'data' => $output]);
     }
 }
