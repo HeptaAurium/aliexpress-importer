@@ -35,7 +35,7 @@ class ProductsController extends Controller
         try {
             $product_details = $this->_fetch_product($request->product_id);
             $product_id = $request->product_id;
-            $product = Product::where('aliexpress_product_id', $product_id);
+            $product = Product::where('aliexpress_product_id', $product_id)->first();
             if ($product) {
                 return response()->json([
                     'status' => 'error',
