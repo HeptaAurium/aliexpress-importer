@@ -1,57 +1,127 @@
+// source: https://github.com/sudheer-ranga/aliexpress-product-scraper
+
 import puppeteer from "puppeteer";
+import * as cheerio from "cheerio";
 
-const getProduct = (productId) => async () => {
+import { get as GetVariants } from "./utils/variants.js";
+import { get as GetReviews } from "./utils/reviews.js";
+import { get as GetShippingDetails } from "./utils/shipping.js";
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        devtools: true,
-        slowMo: 250, // slow down by 250ms
-    });
+const AliexpressProductScraper = async (
+    id,
+    { reviewsCount = 20, filterReviewsBy = "all", puppeteerOptions = {} } = {}
+) => {
+    return JSON.stringify(id);
+    if (!id) {
+        throw new Error("Please provide a valid product id");
+    }
 
-    const page = await browser.newPage();
-    const url = `https://www.aliexpress.com/item/${productId}.html`;
-    const data = {
-        logs: [],
-        product: {},
-    };
+    let browser;
 
-    // try {
-    console.log("Navigating to " + url);
-    data.logs.push("Navigating to " + url);
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    try {
+        const REVIEWS_COUNT = reviewsCount || 20;
+        browser = await puppeteer.launch({
+            headless: "new",
+            ...(puppeteerOptions || {}),
+        });
+        const page = await browser.newPage();
 
-    await page.evaluate(() => console.log(`url is ${location.href}`));
-    await page.goto(url);
+        /** Scrape the aliexpress product page for details */
+        await page.goto(`https://www.aliexpress.com/item/${id}.html`);
+        const aliExpressData = await page.evaluate(() => runParams);
 
-    // Set screen size.
-    await page.setViewport({ width: 1080, height: 1024 });
+        const data = aliExpressData?.data;
+        if (!data) {
+            throw new Error("No data found");
+        }
 
-    const pageTitle = await page.title();
-    data.logs.push("Page title: " + pageTitle);
-    data.product.title = pageTitle;
+        const shipping = GetShippingDetails(
+            data?.webGeneralFreightCalculateComponent?.originalLayoutResultList || []
+        );
 
-    // Wait for the necessary DOM to be rendered
-    await page.waitForSelector('.product-price-current');
-    await page.waitForSelector('.product-description');
+        /** Scrape the description page for the product using the description url */
+        const descriptionUrl = data?.productDescComponent?.descriptionUrl;
+        let descriptionDataPromise = null;
+        if (descriptionUrl) {
+            descriptionDataPromise = page.goto(descriptionUrl).then(async () => {
+                const descriptionPageHtml = await page.content();
+                const $ = cheerio.load(descriptionPageHtml);
+                return $("body").html();
+            });
+        }
 
-    // Extract the product price
-    const price = await page.$eval('.product-price-current', el => el.innerText);
-    data.product.price = price;
+        const reviewsPromise = GetReviews({
+            productId: id,
+            limit: REVIEWS_COUNT,
+            total: data.feedbackComponent.totalValidNum,
+            filterReviewsBy,
+        });
 
-    // Extract the product description
-    const description = await page.$eval('.product-description', el => el.innerText);
-    data.product.description = description;
+        const [descriptionData, reviews] = await Promise.all([
+            descriptionDataPromise,
+            reviewsPromise,
+        ]);
 
-    data.logs.push("Product price: " + price);
-    data.logs.push("Product description: " + description);
+        await browser.close();
 
-    // } catch (error) {
-    //     data.logs.push("Error: " + error.message);
-    // } finally {
-    //     await browser.close();
-    // }
+        /** Build the JSON response with aliexpress product details */
+        const json = {
+            title: data.productInfoComponent.subject,
+            categoryId: data.productInfoComponent.categoryId,
+            productId: data.productInfoComponent.id,
+            quantity: {
+                total: data.inventoryComponent.totalQuantity,
+                available: data.inventoryComponent.totalAvailQuantity,
+            },
+            description: descriptionData,
+            orders: data.tradeComponent.formatTradeCount,
+            storeInfo: {
+                name: data.sellerComponent.storeName,
+                logo: data.sellerComponent.storeLogo,
+                companyId: data.sellerComponent.companyId,
+                storeNumber: data.sellerComponent.storeNum,
+                isTopRated: data.sellerComponent.topRatedSeller,
+                hasPayPalAccount: data.sellerComponent.payPalAccount,
+                ratingCount: data.storeFeedbackComponent.sellerPositiveNum,
+                rating: data.storeFeedbackComponent.sellerPositiveRate,
+            },
+            ratings: {
+                totalStar: 5,
+                averageStar: data.feedbackComponent.evarageStar,
+                totalStartCount: data.feedbackComponent.totalValidNum,
+                fiveStarCount: data.feedbackComponent.fiveStarNum,
+                fourStarCount: data.feedbackComponent.fourStarNum,
+                threeStarCount: data.feedbackComponent.threeStarNum,
+                twoStarCount: data.feedbackComponent.twoStarNum,
+                oneStarCount: data.feedbackComponent.oneStarNum,
+            },
+            images: (data.imageComponent && data.imageComponent.imagePathList) || [],
+            reviews,
+            variants: GetVariants({
+                optionsLists: data?.skuComponent?.productSKUPropertyList || [],
+                priceLists: data?.priceComponent?.skuPriceList || [],
+            }),
+            specs: data.productPropComponent.props,
+            currencyInfo: data.currencyComponent,
+            originalPrice: {
+                min: data.priceComponent.origPrice.minAmount,
+                max: data.priceComponent.origPrice.maxAmount,
+            },
+            salePrice: {
+                min: data.priceComponent.discountPrice.minActivityAmount,
+                max: data.priceComponent.discountPrice.maxActivityAmount,
+            },
+            shipping,
+        };
 
-    return data;
-}
+        return json;
+    } catch (error) {
+        console.error(error);
+        if (browser) {
+            await browser.close();
+        }
+        throw error;
+    }
+};
 
-export { getProduct };
+export default AliexpressProductScraper;

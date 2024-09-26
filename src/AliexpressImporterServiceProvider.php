@@ -35,14 +35,14 @@ class AliexpressImporterServiceProvider extends ServiceProvider
         $this->registerDashboardMenus();
 
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'aliexpress-importer');
         $this->publishes([
             __DIR__ . '/../config/auth.php' => config_path('auth.php'),
         ], 'config');
 
         $this->publishes([
-            __DIR__ . '/Migrations/2024_09_16_000000_create_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
+            __DIR__ . '/Migrations/2024_09_16_000000_create_jwt_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
+            __DIR__ . '/Migrations/2024_09_25_000000_add_column_to_products_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_add_column_to_products_table.php'),
         ], 'migrations');
 
         $this->publishes([
@@ -54,14 +54,14 @@ class AliexpressImporterServiceProvider extends ServiceProvider
 
         // js
 
-        // if ($this->app->runningInConsole()) {
-        $this->publishes([
-            __DIR__ . '/../resources/js' => public_path('vendor/ha-axi/js'),
-        ], 'public');
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__ . '/../resources/js' => public_path('vendor/ha-axi/js'),
+            ], 'public');
 
-        // Run the merge script
-        // $this->mergePackageJson();
-        // }
+            // Run the merge script
+            // $this->mergePackageJson();
+        }
         Sanctum::ignoreMigrations();
     }
 
