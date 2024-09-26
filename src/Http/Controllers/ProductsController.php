@@ -26,22 +26,34 @@ class ProductsController extends Controller
 
     public function store(Request $request)
     {
-        Log::info($request->product_id);
-
-        DB::beginTransaction();
         $token = $request->get('api_token');
-        Log::info($token);
         if ($this->_verify_token($token)->status() != 200) {
             return $this->_verify_token($token);
         }
+        DB::beginTransaction();
 
-        return json_encode([
-            'status' => 'ok'
-        ]);
-
-        $product_details = $this->_fetch_product($request->product_id);
-        return $product_details;
-        $product = $this->_store_product($product_details);
+        try {
+            $product_details = $this->_fetch_product($request->product_id);
+            $product_id = $request->product_id;
+            $product = Product::where('aliexpress_product_id', $product_id);
+            if ($product) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Product already exists'
+                ], 400);
+            }
+            $stored_product = $this->_store_product($product_details);
+            DB::commit();
+            return response()->json([
+                'status' => 'ok',
+                'data' => $stored_product,
+                'message' => 'Product imported successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e);
+            return response()->json(['error' => $e], 500);
+        }
     }
 
     public function runScript($productId)

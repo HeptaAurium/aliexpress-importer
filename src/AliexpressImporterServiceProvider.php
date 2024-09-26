@@ -41,7 +41,7 @@ class AliexpressImporterServiceProvider extends ServiceProvider
         ], 'config');
 
         $this->publishes([
-            __DIR__ . '/Migrations/2024_09_16_000000_create_jwt_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
+            __DIR__ . '/Migrations/2024_09_16_000000_create_tokens_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_jwt_tokens_table.php'),
             __DIR__ . '/Migrations/2024_09_25_000000_add_column_to_products_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_add_column_to_products_table.php'),
         ], 'migrations');
 
