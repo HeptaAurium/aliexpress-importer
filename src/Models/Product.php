@@ -9,4 +9,13 @@ class Product extends Model
 {
 
     protected $table = 'ec_products';
+    protected $fillable = [
+        'description',
+        'images',
+        'image',
+        'aliexpress_product_id',
+        'name',
+        'price',
+        'quantity'
+    ];
 }
