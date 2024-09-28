@@ -16,6 +16,12 @@ class Product extends Model
         'aliexpress_product_id',
         'name',
         'price',
-        'quantity'
+        'quantity',
+        'imported_from_aliexpress',
+        'created_by_id',
+        'with_storehouse_management',
+        'is_featured',
+        'is_variation',
+        'stock_status'
     ];
 }
