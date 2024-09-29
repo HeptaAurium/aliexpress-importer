@@ -28,6 +28,8 @@ trait ProductsTrait
 
         $pd = $this->_sku_details($data);
         foreach ($pd as  $_pd) {
+            $images = $this->_handle_images($_pd['images']);
+
             $product = Product::create([
                 'name' => $_pd['name'],
                 'description' => $_pd['description'],
@@ -35,7 +37,7 @@ trait ProductsTrait
                 'quantity' => $_pd['quantity'],
                 'aliexpress_product_id' => $_pd['aliexpress_product_id'],
                 'imported_from_aliexpress' => true,
-                'images' => $_pd['images'],
+                'images' => $images,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -44,6 +46,7 @@ trait ProductsTrait
                     $this->_handle_attributes($_pd['attributes'], $product->id);
                     $this->_handle_files($_pd['images'], $product->id);
                     $this->_handle_tags($_pd['properties'], $product->id);
+                    $this->_handle_slugs($_pd['name'], $product->id);
                 }
                 $count['successful'] += 1;
                 $count['products'][] = $product->id . ": " . $_pd['name'];
@@ -52,6 +55,23 @@ trait ProductsTrait
             }
         }
         return response()->json($count);
+    }
+
+    public function _handle_images($images)
+    {
+        $urls = explode(';', $images);
+
+        $filenames = [];
+
+        foreach ($urls as $url) {
+            $filename = basename($url);
+            $url = str_replace('https://ae01.alicdn.com/kf/', '', $url);
+            $transformedFilename = 'H' . md5($filename) . substr($filename, -5);
+            $filenames[] = $transformedFilename;
+        }
+
+        $output = json_encode($filenames);
+        return $output;
     }
 
     public function _sku_details($data): array
@@ -167,5 +187,16 @@ trait ProductsTrait
                 }
             }
         }
+    }
+    public function _handle_slugs($name, $product_id)
+    {
+        DB::table('slugs')->insert([
+            'key' => strtolower(str_replace(' ', '-', $name)),
+            'reference_id' => $product_id,
+            'reference_type' => 'Botble\\Ecommerce\\Models\\Product',
+            'prefix' => 'products',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
     }
 }
