@@ -1,193 +1,77 @@
 <?php
 
-namespace Heptaaurium\AliexpressImporter\Traits;
+
+namespace Heptaaurium\AliexpressImporter\Http\Controllers;
 
 use Heptaaurium\AliexpressImporter\Models\Product;
-use Botble\Slug\Models\Slug;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Heptaaurium\AliexpressImporter\Traits\AuthTrait;
+use Heptaaurium\AliexpressImporter\Traits\ProductsTrait;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\Log;
 
-trait ProductsTrait
+class ProductsController extends Controller
 {
-    public function _fetch_product($id)
+    use AuthTrait, ProductsTrait;
+    public function index()
     {
-        $url = env('PRODUCT_DETAILS_END_POINT') ?? url('/api/product');
-        $url .= "?product_id={$id}";
+        return json_encode([
 
-        $details = file_get_contents($url);
-        $details = json_decode($details, true);
-
-        return $details['aliexpress_ds_product_get_response']['result'];
+            'status' => 200
+        ]);
     }
 
-    public function _store_product($data)
+    public function store(Request $request)
     {
-        $count = [
-            'successful' => 0,
-            'failed' => 0,
-            'products' => []
-        ];
+        $token = $request->get('api_token');
+        if ($this->_verify_token($token)->status() != 200) {
+            return $this->_verify_token($token);
+        }
+        DB::beginTransaction();
 
-        $pd = $this->_sku_details($data);
-        foreach ($pd as  $_pd) {
-            $product = Product::updateOrCreate(
-                ['aliexpress_product_id' => $_pd['aliexpress_product_id']],
-                [
-                    'name' => $_pd['name'],
-                    'description' => $_pd['description'],
-                    'price' => $_pd['price'],
-                    'quantity' => $_pd['quantity'],
-                    'imported_from_aliexpress' => true,
-                    'images' => $_pd['images'],
-                    'image' => $_pd['image'],
-                    'created_by_id' => 1,
-                    'with_storehouse_management' => 1,
-                    'is_featured' => 1,
-                    'is_variation' => 0,
-                    'stock_status' => 'in_stock',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]
-            );
+        try {
+            $product_details = $this->_fetch_product($request->product_id);
+            $product_id = $request->product_id;
+            $product = Product::where('aliexpress_product_id', $product_id)->first();
             if ($product) {
-                if ($_pd['attributes']) {
-                    $this->_handle_attributes($_pd['attributes'], $product->id);
-                    $this->_handle_files($_pd['images'], $product->id);
-                    $this->_handle_tags($_pd['properties'], $product->id);
-                    $this->_handle_slug($data, $product->id);
-                }
-                $count['successful'] += 1;
-                $count['products'][] = $product->id . ": " . $_pd['name'];
-            } else {
-                $count['failed'] += 1;
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Product already exists'
+                ], 400);
             }
-        }
-        return response()->json($count);
-    }
-
-    public function _sku_details($data): array
-    {
-        $product = [];
-        $products = [];
-
-        $product['description'] = $data['ae_item_base_info_dto']['detail'];
-        $product['images'] = $data['ae_multimedia_info_dto']['image_urls'];
-        $product['image'] = explode(';', $data['ae_multimedia_info_dto']['image_urls'])[0];
-        $product['imported_from_aliexpress'] = true;
-        $product['aliexpress_product_id'] = $data['ae_item_base_info_dto']['product_id'];
-        $product['properties'] = $data['ae_item_properties']['ae_item_property'];
-
-        // data from sku 
-        $sku_data =  $data['ae_item_sku_info_dtos']['ae_item_sku_info_d_t_o'];
-        foreach ($sku_data as $sku) {
-            $name = $sku['ae_sku_property_dtos']['ae_sku_property_d_t_o'][0]['sku_property_value'] . ' ' . $data['ae_item_base_info_dto']['subject'];
-            $product['name'] = $name;
-            $product['price'] =  $sku['sku_price'];
-            $product['quantity'] =  $sku['sku_available_stock'];
-            $product['attributes'] = $sku['ae_sku_property_dtos']['ae_sku_property_d_t_o'];
-            array_push($products, $product);
-        }
-        return $products;
-    }
-
-    public function _get_name_description($sku_details)
-    {
-        $name = "";
-        foreach ($sku_details as $sk) {
-            if ($sk['sku_property_value']) {
-                $name .= $sk['property_value_definition_name'] . '(' . $sk['sku_property_name'] . ') ';
-            }
-        }
-    }
-
-    public function _handle_files($data, $product_id)
-    {
-        $data = explode(";", $data);
-        foreach ($data as $file) {
-            DB::table('ec_product_files')->insert([
-                'url' => $file,
-                'product_id' => $product_id,
-                'created_at' => now(),
-                'updated_at' => now()
+            $stored_product = $this->_store_product($product_details);
+            DB::commit();
+            return response()->json([
+                'status' => 'ok',
+                'data' => $stored_product,
+                'message' => 'Product imported successfully'
             ]);
-        }
-    }
-    public function _handle_attributes($data, $product_id)
-    {
-        foreach ($data as $dt) {
-
-            $attr = DB::table('ec_product_attribute_sets')
-                ->where('title', 'LIKE', "%{$dt['sku_property_name']}%")
-                ->OrWhere('slug', 'LIKE', "%{$dt['sku_property_name']}%")
-                ->first();
-
-            if ($attr && $product_id) {
-                DB::table('ec_product_with_attribute_set')
-                    ->insert([
-                        'attribute_set_id' => $attr->id,
-                        'product_id' => $product_id
-                    ]);
-            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e);
+            return response()->json(['error' => $e], 500);
         }
     }
 
-    public function _handle_tags($data, $product_id)
+    public function runScript($productId)
     {
-        foreach ($data as $prop) {
-            $tag = DB::table('ec_product_tags')
-                ->where('name', 'LIKE', "%{$prop['attr_name']}%")
-                ->first();
 
-            if (!$tag) {
-                $tag_id = DB::table('ec_product_tags')->insertGetId([
-                    'name' => $prop['attr_name'],
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
+        // $process = new Process(['node', base_path('vendor/heptaaurium/aliexpress-importer/resources/js/index.mjs'), $productId]);
+        $process = new Process(['node', public_path('vendor/ha-axi/js/index.mjs'), $productId]);
 
-            $existingCombination = DB::table('ec_product_tag_product')
-                ->where('tag_id', $tag->id ?? $tag_id)
-                ->where('product_id', $product_id)
-                ->first();
-
-            if (!$existingCombination) {
-                DB::table('ec_product_tag_product')->insert([
-                    'tag_id' => $tag->id ?? $tag_id,
-                    'product_id' => $product_id
-                ]);
-            }
+        try {
+            $process->mustRun();
+            $output = $process->getOutput();
+            $response = json_decode($output);
+            Log::info('Script response: ' . json_encode($response));
+            return response()->json($response);
+        } catch (ProcessFailedException $exception) {
+            Log::error('Process failed: ' . $exception->getMessage());
+            Log::error('Process error output: ' . $process->getErrorOutput());
+            return response()->json(['error' => 'An error occurred while processing your request.'], 500);
         }
-    }
-    public function _handle_brands($data, $product_id)
-    {
-
-        foreach ($data as $prop) {
-            if (strpos(strtolower($prop['attr_name']), 'brand') !== false) {
-                $brand = DB::table('ec_brands')
-                    ->where('name', 'LIKE', "%{$prop['attr_value']}%")
-                    ->first();
-
-                if ($brand) {
-                    DB::table('ec_product_with_brands')->insert([
-                        'brand_id' => $brand->id,
-                        'product_id' => $product_id,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-            }
-        }
-    }
-    public function _handle_slug($data, $product_id)
-    {
-        $slug = str_replace(' ', '-', strtolower($data['ae_item_base_info_dto']['subject']));
-        Slug::query()->updateOrCreate(
-            ["key" => $slug,],
-            [
-                "reference_id" => $product_id,
-                "reference_type" => "Botble\Ecommerce\Models\Product",
-                "prefix" => "products",
-            ]
-        );
     }
 }
